@@ -1,0 +1,5 @@
+# MinerU API Token
+# 获取方式: https://mineru.net/apiManage/token
+# 注册账号后，在 API Token 页面创建并复制 JWT Token（以 eyJ... 开头）
+# 将其填入下方等号后面，保存即可
+MINERU_TOKEN=

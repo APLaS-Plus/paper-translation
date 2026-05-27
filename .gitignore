@@ -4,9 +4,15 @@ output_*/
 # PDF files
 *.pdf
 
+# Node
+node_modules/
+
 # Python
 __pycache__/
 *.pyc
+
+# Skill config (contains API token)
+config
 
 # IDE
 .vscode/

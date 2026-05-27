@@ -11,13 +11,28 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 API_BASE = os.environ.get("MINERU_BASE_URL", "https://mineru.net/api/v4")
+# 优先从环境变量读取，其次从 skill 配置文件
 TOKEN = os.environ.get("MINERU_TOKEN", "")
+if not TOKEN:
+    config_path = Path.home() / ".claude" / "skills" / "paper-translation" / "config"
+    if config_path.exists():
+        for line in config_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("MINERU_TOKEN="):
+                TOKEN = line.split("=", 1)[1].strip().strip('"').strip("'")
+                break
 
 if not TOKEN:
-    raise RuntimeError("请设置环境变量 MINERU_TOKEN (在 mineru.net 控制台获取)")
+    raise RuntimeError(
+        "请先配置 MinerU API Token:\n"
+        "  1. 访问 https://mineru.net/apiManage/token 获取 JWT Token\n"
+        "  2. 填入 ~/.claude/skills/paper-translation/config 文件中\n"
+        "  3. 或设置环境变量 MINERU_TOKEN"
+    )
 
 # 要解析的 PDF 列表: {"path": "相对路径", "data_id": "唯一标识"}
 PDFS = [
+    {"path": "2605.13058v1.pdf", "data_id": "2605.13058v1"},
 ]
 
 os.environ["no_proxy"] = "mineru.net,openxlab.org.cn"
