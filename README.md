@@ -126,12 +126,20 @@ grep -c '\$\$' *_zh.md
 ### 方式 1：npx skills add（推荐）
 
 ```bash
-npx skills add APLaS/paper-translation
+npx skills add APLaS-Plus/paper-translation
 ```
 
-安装工具自动发现 `skills/paper-translation/SKILL.md`，无需手动操作。之后在 Claude Code 中直接说"翻译这篇论文"即可触发。
+### 方式 2：Plugin Marketplace
 
-### 方式 2：手动安装
+```bash
+# 在 Claude Code 中运行：
+/plugin marketplace add APLaS-Plus/paper-translation
+/plugin install paper-translation@paper-translation
+```
+
+之后用 `/paper-translation:paper-translation` 触发。
+
+### 方式 3：手动安装
 
 将 `skills/paper-translation/` 复制到 `~/.claude/skills/paper-translation/`，然后将 `config.example` 复制为 `config` 并填入 Token。
 
