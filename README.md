@@ -78,6 +78,16 @@ grep -c '\$\$' *_zh.md
 - **图片路径修正** — `images/xxx.jpg` → `output_<论文名>/images/xxx.jpg`
 - **术语一致** — 多篇论文共享统一术语表
 
+## 翻译效果
+
+以 MUJICA 论文为例，左侧为原始 PDF，右侧为翻译后的中文 Markdown：
+
+| 翻译前 | 翻译后 |
+|--------|--------|
+| ![原始PDF](assets/pdf.png) | ![中文译文](assets/translated.png) |
+
+公式、表格、图片引用完整保留，正文准确翻译为学术中文。
+
 ## Token 消耗参考
 
 以 MUJICA 论文（426 行, 9 张图）为例，完整翻译流程的 token 消耗：
