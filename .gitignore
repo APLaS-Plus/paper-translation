@@ -1,0 +1,13 @@
+# Output directories
+output_*/
+
+# PDF files
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
