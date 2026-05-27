@@ -58,11 +58,11 @@ Systematic workflow for extracting academic PDFs via MinerU API and translating 
 
 ```bash
 # Count source lines and images before starting
-wc -l output_*/full.md
-grep -c '!\[.*\](images/' output_*/full.md
+wc -l mineru_output/full.md
+grep -c '!\[.*\](images/' mineru_output/full.md
 ```
 
-- Read any project template (e.g., `模板.md`) to understand output expectations
+- **Clean up `output_*`:** After MinerU extraction, move contents to `<论文名>/mineru_output/`, then delete `output_*/`. This intermediate dir must not linger.
 - Build terminology table for core terms before translating
 - Confirm source file paths, line counts, image counts
 
@@ -222,3 +222,4 @@ These instructions produced the best results:
 - **Using placeholder text** — "实验图表保持不变" is not acceptable; every image and caption must be present in the translation
 - **Not verifying formula closure** — A single unclosed `$$` breaks all subsequent Markdown rendering; always check even counts
 - **Leaving HTML tables unconverted** — MinerU outputs `<table>` HTML tags, which render poorly in most Markdown viewers; always convert to `|` pipe syntax
+- **Leaving `output_*` directories behind** — After moving contents to `<论文名>/mineru_output/`, always delete the intermediate `output_*/` directory
