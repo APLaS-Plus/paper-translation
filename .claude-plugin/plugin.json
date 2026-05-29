@@ -1,7 +1,7 @@
 {
   "name": "paper-translation",
   "description": "学术论文 PDF → 中文 Markdown 自动化翻译流水线。保留 LaTeX 公式、图片、表格、代码块，支持 MinerU API 提取、术语一致性管理。",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "APLaS"
   },

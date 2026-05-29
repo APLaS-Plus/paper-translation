@@ -1,0 +1,7 @@
+{
+  "paper-translation-tools": {
+    "command": "python",
+    "args": ["~/.claude/skills/paper-translation/mcp_server.py"],
+    "description": "CrossRef DOI lookup & arXiv search — 论文参考文献链接解析工具"
+  }
+}

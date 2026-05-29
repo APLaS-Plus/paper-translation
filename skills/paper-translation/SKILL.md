@@ -234,7 +234,7 @@ Common issues and their fixes:
 | Inconsistent terminology | `grep` key terms in both outputs | Align to glossary |
 | **Formula rendering broken** | `$$` count odd, `_` inside `$...$` not escaped, delimiter spacing wrong | Fix rendering: rejoin split `$$`, escape bare `_` → `\_`, fix spacing. Do NOT change math content. Flag uncertain cases for manual review. |
 | **Pseudocode translated as body text** | Algorithm lines (e.g., `1: for ... do`) appear in Chinese | Scan mineru_output for `Algorithm` / `算法` / consecutive `数字:` lines. Wrap in ` ```text ` if not already fenced. Restore original English for pseudocode body; only translate title/header. |
-| **Reference `[N]` has no link** | Plain `[1]` in text, not clickable | Scan References text for arXiv ID patterns (`arXiv:XXXX.XXXXX`). Construct `https://arxiv.org/abs/<ID>`. No arXiv ID → leave unlinked. Also handle author-year format — see Execute section for strategy. |
+| **Reference `[N]` has no link** | Plain `[1]` in text, not clickable | **首选方案：调用 MCP 工具 `resolve_reference`** 单条查找或 `batch_resolve_references` 批量补全 DOI/URL。回退方案：扫描参考文献文本中的 arXiv ID 模式（`arXiv:XXXX.XXXXX`）手动构造链接。无 arXiv ID → leave unlinked。 |
 | **OCR artifacts in output** | Control chars (`^C`), broken text (`Fujimoto and \n\n Gu`), char substitutions (`\textcircled{2}` → `2`) | Scan for `[\x00-\x08\x0b\x0c\x0e-\x1f]` control chars → delete. Rejoin text split by spurious newlines. Flag suspicious substitutions for manual review. |
 
 ### 5. Verify
@@ -308,3 +308,50 @@ These instructions produced the best results:
 - **Leaving HTML tables unconverted** — MinerU outputs `<table>` HTML tags, which render poorly in most Markdown viewers; always convert to `|` pipe syntax
 - **Leaving `output_*` directories behind** — After moving contents to `<论文名>/mineru_output/`, always delete the intermediate `output_*/` directory
 - **Translating pseudocode body** — MinerU outputs algorithms as bare text (no ` ``` `). Only translate the title (e.g., "Algorithm 1: ..."); the pseudocode body (Input/Output/lines like `1: for...`) must stay in English. If the mineru output has no code fence, add ` ```text ` around the pseudocode block.
+
+## MCP Tools (参考文献链接解析)
+
+本 skill 提供一组 MCP 工具，通过 CrossRef 和 arXiv API 自动查找论文的 DOI 和 URL，弥补 MinerU 不输出参考文献链接的缺陷。
+
+### 可用工具
+
+| 工具 | 用途 | 调用时机 |
+|------|------|----------|
+| `resolve_reference` | 输入论文标题（+ 可选作者），返回 DOI、URL、期刊、年份 | Fix 阶段逐条补全参考文献链接 |
+| `batch_resolve_references` | 输入参考文献列表，批量查 CrossRef 返回 DOI | Fix 阶段一次性补全整篇论文的参考文献 |
+| `lookup_arxiv` | 输入 arXiv ID，返回标题、作者、DOI、PDF 链接 | Execute 阶段验证 arXiv 引用；Fix 阶段补全 arXiv ID 截断的文献 |
+| `search_arxiv` | 输入关键词，在 arXiv 搜索匹配论文 | Prepare 阶段发现相关论文；Fix 阶段确认模糊引用 |
+
+### 使用示例
+
+**单条查找（Fix 阶段逐条处理）：**
+```
+调用 MCP 工具 resolve_reference
+  title: "Attention Is All You Need"
+  author: "Vaswani"
+返回: DOI: 10.xxxx, URL: https://doi.org/...
+→ 在译文中将纯文本引用改为可点击链接格式
+```
+
+**批量查找（Fix 阶段一次性处理）：**
+```
+调用 MCP 工具 batch_resolve_references
+  references: ["Attention Is All You Need", "BERT: Pre-training of Deep...", ...]
+返回: 共 30 条，找到 21 条 DOI (70%)
+→ 有 DOI 的添加链接，无 DOI 的保留原文
+```
+
+**arXiv ID 补全（Fix 阶段修复截断）：**
+```
+调用 MCP 工具 lookup_arxiv
+  arxiv_id: "1910.09615"
+返回: Title, Authors, DOI, PDF link
+→ 如原文 arXiv ID 被截断（只剩年份），用完整信息补全引用
+```
+
+### 注意事项
+
+- CrossRef API 免费但有限速：单条查找无限制，批量查找建议每次 ≤50 条
+- arXiv API 在国内网络可能超时——如 `lookup_arxiv` 失败，回退到手动构造 `https://arxiv.org/abs/<ID>` 链接
+- MCP 查找结果仅供参考，标题匹配不精确时需人工验证 DOI 正确性
+- 会议论文（IJCAI/AAAI/ICRA）CrossRef 覆盖率 60-80%，预印本覆盖率 90%+，无 DOI 的保留无链接形式
