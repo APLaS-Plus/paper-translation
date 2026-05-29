@@ -65,11 +65,25 @@ grep -c '\$\$' *_zh.md
 
 ## 文件说明
 
-| 文件 | 说明 |
-|------|------|
-| `skills/paper-translation/SKILL.md` | 完整翻译流程 skill |
+| 文件                                        | 说明                                       |
+| ------------------------------------------- | ------------------------------------------ |
+| `skills/paper-translation/SKILL.md`       | 完整翻译流程 skill                         |
 | `skills/paper-translation/config.example` | Token 配置模板（复制为 `config` 后填入） |
-| `extract_pdfs.py` | MinerU API 批量 PDF 提取脚本 |
+| `extract_pdfs.py`                         | MinerU API 批量 PDF 提取脚本               |
+
+## 已知局限
+
+当前基于 MinerU API 的解析方案存在以下已知问题，这些问题在 SKILL.md 中已有针对性缓解策略，但无法从根源上彻底解决：
+
+| 局限 | 说明 | 缓解措施 |
+|------|------|----------|
+| **伪代码提取缺失** | MinerU 可能完全不提取 PDF 中渲染的 Algorithm 块（取决于 PDF 排版方式），`full.md` 中直接消失 | Prepare 阶段检测伪代码特征，缺失时标注 `【伪代码缺失，需手动提取】` |
+| **参考文献无 URL/DOI** | MinerU 输出的参考文献是纯文本，不包含结构化链接 | Execute 阶段扫描 arXiv ID 文本模式构造链接；会议论文覆盖率仅 20-40% |
+| **HTML 合并单元格丢失** | MinerU 输出表格为 HTML `<table>`，转为 Markdown pipe 语法时合并单元格（rowspan/colspan）被拆分为独立行列 | `html_table_to_md.py` 尽量保留结构，复杂表格需人工复核 |
+| **OCR 杂讯** | 控制字符（null bytes, `^C`）、文本断裂（`Fujimoto and \n\n Gu`）、字符替换（`\textcircled{2}` → `2`）等 | Prepare 阶段检查 null bytes；Fix 阶段清理控制字符、重接断裂文本 |
+| **Windows 兼容性** | `grep -P` 不可用；Windows SSL 证书链可能不完整导致 MinerU API 调用失败 | 全部改用 `grep -E`；API 调用使用 Python `requests`，证书问题需在系统层面安装 CA 根证书 |
+| **译文图片丢失** | "理解后概括"式翻译模式下，子 agent 可能批量遗漏图片引用（实测最高 63%） | Execute 阶段强调"逐行翻译"规则；Verify 阶段图片差异 >10% 触发逐行排查 |
+| **API 后端单一** | 仅支持 MinerU API，无替代方案 | [计划中] 评估 Adobe PDF Extract API 作为替代后端 |
 
 ## 关键规则
 
@@ -82,8 +96,8 @@ grep -c '\$\$' *_zh.md
 
 以 MUJICA 论文为例，左侧为原始 PDF，右侧为翻译后的中文 Markdown：
 
-| 翻译前 | 翻译后 |
-|--------|--------|
+| 翻译前                   | 翻译后                           |
+| ------------------------ | -------------------------------- |
 | ![原始PDF](assets/pdf.png) | ![中文译文](assets/translated.png) |
 
 公式、表格、图片引用完整保留，正文准确翻译为学术中文。
@@ -143,6 +157,17 @@ npx skills add APLaS-Plus/paper-translation
 
 将 `skills/paper-translation/` 复制到 `~/.claude/skills/paper-translation/`，然后将 `config.example` 复制为 `config` 并填入 Token。
 
-## 结语
+## 致谢
+
+- [MinerU](https://github.com/opendatalab/MinerU) — 开源 PDF 提取工具，提供高精度 LaTeX 公式、图片、表格解析能力。本项目使用其 Precision API 作为 PDF 提取后端。
+- [达尔文.skill](https://github.com/alchaincyf/darwin-skill) — 花叔（华生）开发的 Claude Code Skill 自主优化系统，v2.0 集成 Microsoft Research SkillLens 9 维评分体系。本项目在达尔文的评估→改进→实测验证循环中完成多轮迭代优化。
+
+## 记录
+
+05/27/2026
 
 梁圣牛逼，D神牛逼，写完skills并且翻译了三篇文章也就用了三块钱
+
+05/29/2026
+
+卧槽多agents迭代这么tokens，一天烧我七块钱

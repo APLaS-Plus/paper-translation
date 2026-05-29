@@ -32,7 +32,7 @@ if not TOKEN:
 
 # 要解析的 PDF 列表: {"path": "相对路径", "data_id": "唯一标识"}
 PDFS = [
-    {"path": "2412.04234.pdf", "data_id": "2412.04234"},
+    {"path": "2510.18518v2.pdf", "data_id": "2510.18518v2"},
 ]
 
 os.environ["no_proxy"] = "mineru.net,openxlab.org.cn"
@@ -121,11 +121,11 @@ def download_results(results: list[dict]):
         out_dir.mkdir(exist_ok=True)
         print(f"  -> {fname}", end="", flush=True)
         try:
-            resp = requests.get(zip_url, verify=False, timeout=120)
+            resp = requests.get(zip_url, timeout=120)
         except requests.exceptions.SSLError:
             zip_path = out_dir / "result.zip"
             subprocess.run(
-                ["curl", "-k", "-L", "-s", "-o", str(zip_path), zip_url],
+                ["curl", "-L", "-s", "-o", str(zip_path), zip_url],
                 timeout=120, check=True,
             )
             with zipfile.ZipFile(zip_path, "r") as zf:
