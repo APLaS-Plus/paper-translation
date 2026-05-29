@@ -1,8 +1,8 @@
 # Changelog
 
-## v1.1.0 — 2026-05-29 (Darwin 2.0 实测驱动迭代)
+## v1.1.0 — 2026-05-30 (Darwin 2.0 实测驱动迭代)
 
-共 6 轮迭代、8 篇论文压测、32 个修复。
+共 8 轮迭代、8 篇论文压测、38 个修复。
 
 ---
 
@@ -62,6 +62,24 @@
 - **新增**: `\begin{array}{l l}` → `\begin{cases}` 映射规则
 - **修复**: arXiv ID 截断处理（MinerU 可能只剩 "arXiv, YYYY"）
 - **新增**: `html_table_to_md.py` 脚本（HTML `<table>` 批量转 Markdown pipe）+ SKILL.md 引用
+
+### R7: MCP Server 集成 — 参考文献链接自动解析 (2026-05-30)
+
+- **新增**: `mcp_server.py` — 基于 MCP 协议的独立 Server，通过 stdio JSON-RPC 与 Claude Code 通信
+- **新增**: `resolve_reference` 工具 — 通过 CrossRef API 根据论文标题/作者查找 DOI 和 URL
+- **新增**: `batch_resolve_references` 工具 — 批量解析参考文献列表，Fix 阶段一键补全 DOI
+- **新增**: `lookup_arxiv` 工具 — 查询 arXiv 论文元数据（标题、作者、DOI、PDF 链接）
+- **新增**: `search_arxiv` 工具 — 关键词搜索 arXiv 论文
+- **新增**: `.mcp.json` — Claude Code plugin 自动发现并注册 MCP Server
+- **新增**: SKILL.md "MCP Tools" 章节 — 工具表、使用示例、注意事项
+- **修复**: `plugin.json` 版本号 1.0.0 → 1.1.0
+
+### R8: 安全审查修复 (2026-05-30)
+
+- **修复**: `extract_pdfs.py` 移除 `verify=False`（TLS 验证禁用）和 `curl -k` 回退
+- **修复**: `mcp_server.py` XXE 防护 — 优先使用 `defusedxml` 解析 XML，回退标准库
+- **修复**: `mcp_server.py` arXiv API 从 `http://` 改为 `https://`
+- **修复**: README 已知局限表格 `curl -k` 表述改为 TLS 证书建议
 
 ---
 
