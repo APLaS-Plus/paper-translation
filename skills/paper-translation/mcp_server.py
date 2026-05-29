@@ -5,12 +5,20 @@
 """
 
 import json
+import re
 import sys
 import urllib.request
 import urllib.parse
 import urllib.error
 import xml.etree.ElementTree as ET
 from typing import Any
+
+# 优先使用 defusedxml 防止 XXE，回退到标准库（arXiv API 是可信源）
+try:
+    import defusedxml.ElementTree as SafeET
+    _parse_xml = lambda xml: SafeET.fromstring(xml)
+except ImportError:
+    _parse_xml = lambda xml: ET.fromstring(xml)
 
 
 # ── CrossRef API ────────────────────────────────────────────
@@ -61,14 +69,14 @@ def _crossref_search(title: str, author: str = "", rows: int = 3) -> list[dict]:
 
 def _arxiv_lookup(arxiv_id: str) -> dict | None:
     """Look up arXiv paper metadata by ID."""
-    url = f"http://export.arxiv.org/api/query?search_query=id:{arxiv_id}&max_results=1"
+    url = f"https://export.arxiv.org/api/query?search_query=id:{arxiv_id}&max_results=1"
     try:
         with urllib.request.urlopen(url, timeout=15) as resp:
             xml_data = resp.read().decode("utf-8")
     except Exception as e:
         return {"error": str(e)}
 
-    root = ET.fromstring(xml_data)
+    root = _parse_xml(xml_data)
     ns = {
         "atom": "http://www.w3.org/2005/Atom",
         "arxiv": "http://arxiv.org/schemas/atom",
@@ -109,7 +117,7 @@ def _arxiv_lookup(arxiv_id: str) -> dict | None:
 def _arxiv_search(query: str, max_results: int = 5) -> list[dict]:
     """Search arXiv for papers."""
     url = (
-        "http://export.arxiv.org/api/query?"
+        "https://export.arxiv.org/api/query?"
         + urllib.parse.urlencode({
             "search_query": f"all:{query}",
             "max_results": max_results,
@@ -122,7 +130,7 @@ def _arxiv_search(query: str, max_results: int = 5) -> list[dict]:
     except Exception as e:
         return [{"error": str(e)}]
 
-    root = ET.fromstring(xml_data)
+    root = _parse_xml(xml_data)
     ns = {
         "atom": "http://www.w3.org/2005/Atom",
         "arxiv": "http://arxiv.org/schemas/atom",
@@ -334,14 +342,44 @@ def handle_request(request: dict) -> dict | None:
                     lines = []
                     found = 0
                     for i, ref_text in enumerate(refs):
-                        # Extract first 6 words as a rough title query
-                        words = ref_text.strip().split()
-                        title_query = " ".join(words[:8]) if len(words) >= 3 else ref_text.strip()
-                        results = _crossref_search(title_query, rows=1)
+                        # Try to split title from authors/venue
+                        # Common patterns: "Title, Author..." or "Title. Author..." or "Author (Year). Title..."
+                        title_query = ref_text.strip()
+                        author_query = ""
+
+                        # Pattern: "Author (Year). Title..." → extract title after year
+                        m1 = re.match(r'^[^(]+\(\d{4}\)[,. ]+(.+)$', ref_text.strip())
+                        if m1:
+                            title_query = m1.group(1).strip()
+                            author_query = ref_text.strip().split("(")[0].strip()
+
+                        # Pattern: "Title, Author, Venue..." → take everything before first author-like comma
+                        # Look for "et al." or " and " as author markers, take title before that
+                        for sep in [", et al.", " et al.", ". et al."]:
+                            idx = ref_text.find(sep)
+                            if idx > 10:  # title should be at least 10 chars
+                                title_query = ref_text[:idx].strip()
+                                break
+
+                        # Clean title: remove leading numbers/bullets
+                        title_query = re.sub(r'^\[?\d+\]?[\.\s]+', '', title_query).strip()
+                        # Take reasonable number of words (first 15, but stop before obvious markers)
+                        words = title_query.split()
+                        # Stop before words like "In", "Proceedings", "arXiv", "preprint"
+                        cut_words = {"In", "Proceedings", "Proc.", "arXiv", "preprint", "Technical"}
+                        end_idx = len(words)
+                        for j, w in enumerate(words):
+                            if w in cut_words and j > 3:
+                                end_idx = j
+                                break
+                        title_query = " ".join(words[:min(end_idx, 15)]) if words else title_query
+
+                        results = _crossref_search(title_query, author=author_query, rows=1)
                         if results and "error" not in results[0] and results[0].get("doi"):
                             r = results[0]
                             lines.append(
-                                f"[{i+1}] {r['doi']} → {r['url']}"
+                                f"[{i+1}] {r['title']}\n"
+                                f"    DOI: {r['doi']} → {r['url']}"
                             )
                             found += 1
                         else:
